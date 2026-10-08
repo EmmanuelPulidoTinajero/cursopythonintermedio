@@ -1,12 +1,28 @@
-# Clase 6: primera API con FastAPI
+# Clase 6: primera API con Flask
 
-Esta es una API de gestión de tareas pensada como primer ejercicio. Todo el
-backend y la interfaz están en [`main.py`](main.py). Las tareas se guardan en
-`tasks.json`, que se crea automáticamente al guardar la primera tarea.
+Esta clase construye una API de gestión de tareas con Flask. El backend y el
+frontend están separados para practicar primero las rutas HTTP y los datos
+JSON sin mezclar la lógica de la interfaz.
+
+## Estructura
+
+```text
+clase 6/
+├── backend/
+│   └── app.py          # API Flask y persistencia JSON
+├── frontend/
+│   ├── index.html      # Estructura de la página
+│   ├── styles.css      # Estilos
+│   └── app.js          # Llamadas HTTP y comportamiento de la interfaz
+└── requirements.txt
+```
+
+Las tareas se guardan en `backend/tasks.json` después de crear la primera.
+Ese archivo es local y se ignora en Git.
 
 ## 1. Preparar el proyecto
 
-Se recomienda usar un entorno virtual:
+Desde la carpeta `clase 6`:
 
 ```powershell
 python -m venv .venv
@@ -14,24 +30,31 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-## 2. Iniciar el servidor
+## 2. Iniciar el backend
 
-Desde esta carpeta:
+En una terminal, desde `clase 6`:
 
 ```powershell
-uvicorn main:app --reload
+python backend/app.py
 ```
 
-Después, abre <http://127.0.0.1:8000>. La interfaz usa HTML semántico,
-etiquetas asociadas a sus campos, foco visible del navegador y una región
-`aria-live` para avisar el resultado de las acciones a lectores de pantalla.
+La API estará disponible en <http://127.0.0.1:5000>. Flask solo entrega
+respuestas JSON; no sirve la página web. `flask-cors` permite que el frontend
+local se comunique con este servidor.
 
-FastAPI también genera documentación interactiva:
+## 3. Iniciar el frontend
 
-- <http://127.0.0.1:8000/docs>
-- <http://127.0.0.1:8000/redoc>
+En una segunda terminal, desde `clase 6`:
 
-## 3. Acciones disponibles
+```powershell
+python -m http.server 5500 --directory frontend
+```
+
+Abre <http://127.0.0.1:5500>. Esta página llama a la API usando `fetch`.
+La interfaz usa HTML semántico, etiquetas asociadas a sus campos y una región
+`aria-live` para comunicar los resultados a lectores de pantalla.
+
+## 4. Acciones de la API
 
 | Método | URL | Uso |
 | --- | --- | --- |
@@ -43,32 +66,45 @@ Ejemplo de JSON para crear o actualizar:
 
 ```json
 {
-  "title": "Estudiar FastAPI",
+  "title": "Estudiar Flask",
   "description": "Leer los conceptos básicos de rutas",
   "due_date": "2026-10-15"
 }
 ```
 
-## 4. Cómo está organizado
+Puedes probar las rutas con la interfaz o con una herramienta HTTP. Por
+ejemplo, en PowerShell:
 
-1. `TaskCreate` describe los datos que recibe la API.
-2. `Task` agrega un `id` a esos datos.
-3. `read_tasks` y `write_tasks` leen y escriben el archivo JSON.
-4. Cada función decorada con `@app.get`, `@app.post` o `@app.put` es una
-   ruta HTTP.
-5. La interfaz llama esas rutas con `fetch`.
+```powershell
+$body = @{
+  title = "Estudiar Flask"
+  description = "Practicar una ruta POST"
+  due_date = "2026-10-15"
+} | ConvertTo-Json
+
+Invoke-RestMethod http://127.0.0.1:5000/tasks `
+  -Method Post -ContentType "application/json" -Body $body
+```
+
+## 5. Cómo está organizado el backend
+
+1. `app = Flask(__name__)` crea la aplicación.
+2. `@app.get`, `@app.post` y `@app.put` conectan una URL con una función.
+3. `request.get_json()` lee el cuerpo JSON enviado por el cliente.
+4. `jsonify()` convierte los datos de Python en una respuesta JSON.
+5. `read_tasks` y `write_tasks` leen y escriben el archivo local.
+6. `validate_task_data` comprueba los datos antes de guardarlos.
 
 ## Ejercicio para la clase
 
-1. Ejecuta la aplicación y crea dos tareas desde la interfaz.
-2. Abre `tasks.json` y observa cómo se guardan.
-3. Visita `/docs` y prueba las mismas rutas desde la documentación.
-4. Cambia el proyecto para agregar una ruta `DELETE /tasks/{id}`.
-5. Como siguiente paso, separa los modelos, las rutas y la interfaz en
-   archivos diferentes.
+1. Ejecuta ambos servidores y crea dos tareas desde el frontend.
+2. Abre `backend/tasks.json` y observa cómo se guardan.
+3. Prueba `GET`, `POST` y `PUT` con una herramienta HTTP.
+4. Agrega una ruta `DELETE /tasks/{id}`.
+5. Después, mejora la validación para limitar el tamaño del título.
 
 ## Nota didáctica
 
-El archivo JSON es suficiente para practicar HTTP, rutas, modelos y
-persistencia sin introducir todavía una base de datos. No está pensado para
+El archivo JSON es suficiente para practicar HTTP, rutas, JSON y persistencia
+sin introducir todavía una base de datos. Este proyecto no está pensado para
 varios usuarios ni para producción.
